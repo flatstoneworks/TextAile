@@ -404,3 +404,58 @@ export async function deleteMCPSecret(key: string): Promise<MCPSetSecretResponse
   })
   return handleResponse<MCPSetSecretResponse>(res)
 }
+
+// ============================================================================
+// Notification Types
+// ============================================================================
+
+export interface NotificationConfig {
+  gotify_url: string | null
+  gotify_token: string | null
+  gotify_configured: boolean
+}
+
+export interface NotificationResponse {
+  success: boolean
+  message?: string
+}
+
+// ============================================================================
+// Notification API Functions
+// ============================================================================
+
+export async function getNotificationConfig(): Promise<NotificationConfig> {
+  const res = await fetch(`${API_BASE}/settings/notifications`)
+  return handleResponse<NotificationConfig>(res)
+}
+
+export async function updateNotificationConfig(
+  gotifyUrl: string,
+  gotifyToken: string
+): Promise<NotificationResponse> {
+  const res = await fetch(`${API_BASE}/settings/notifications`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gotify_url: gotifyUrl, gotify_token: gotifyToken }),
+  })
+  return handleResponse<NotificationResponse>(res)
+}
+
+export async function deleteNotificationConfig(): Promise<NotificationResponse> {
+  const res = await fetch(`${API_BASE}/settings/notifications`, {
+    method: 'DELETE',
+  })
+  return handleResponse<NotificationResponse>(res)
+}
+
+export async function sendTestNotification(
+  title: string = 'Test Notification',
+  message: string = 'TextAile notifications are working'
+): Promise<NotificationResponse> {
+  const res = await fetch(`${API_BASE}/settings/notifications/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, message }),
+  })
+  return handleResponse<NotificationResponse>(res)
+}

@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .routers import chat_router, conversations_router, models_router, mcp_router
+from .routers import chat_router, conversations_router, models_router, mcp_router, settings_router
 from .services import LLMInferenceService, ConversationStore, MCPClientService
 
 # Configure logging
@@ -90,6 +90,7 @@ app.include_router(chat_router)
 app.include_router(conversations_router)
 app.include_router(models_router)
 app.include_router(mcp_router)
+app.include_router(settings_router)
 
 
 @app.get("/")

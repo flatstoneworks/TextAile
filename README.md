@@ -13,6 +13,8 @@ A local LLM chat interface inspired by [HollyWool](../HollyWool). TextAile provi
 - **Export/Import**: Save conversations as JSON or Markdown
 - **Model Management**: Browse available models, monitor cache usage
 - **GPU Acceleration**: Automatic GPU detection and optimization
+- **MCP Integration**: Connect to Model Context Protocol servers for extended capabilities
+- **Personal Agents** *(coming soon)*: Autonomous background agents with notifications
 
 ## Quick Start
 
@@ -125,6 +127,25 @@ DELETE /api/models/{id}/cache     # Delete model cache
 GET  /api/health                  # Health check with GPU status
 ```
 
+### MCP
+```
+GET  /api/mcp/servers                    # List MCP servers
+POST /api/mcp/servers/{id}/connect       # Connect to server
+POST /api/mcp/servers/{id}/disconnect    # Disconnect from server
+GET  /api/mcp/tools                      # List available tools
+POST /api/mcp/tools/call                 # Call a tool
+POST /api/mcp/secrets                    # Set API key
+DELETE /api/mcp/secrets/{key}            # Delete API key
+```
+
+### Settings
+```
+GET  /api/settings/notifications         # Get notification config
+POST /api/settings/notifications         # Update notification config
+DELETE /api/settings/notifications       # Remove notification config
+POST /api/settings/notifications/test    # Send test notification
+```
+
 ## Configuration
 
 Edit `backend/config.yaml` to add or modify model configurations:
@@ -140,6 +161,64 @@ models:
     description: "Description here"
     tags: ["custom", "chat"]
 ```
+
+## MCP Servers
+
+TextAile can connect to [Model Context Protocol](https://modelcontextprotocol.io) servers to extend AI capabilities with external tools.
+
+### Included MCP Servers
+
+| Server | Description | Requires |
+|--------|-------------|----------|
+| Filesystem | Read/write local files | Nothing |
+| Fetch | Fetch URLs as markdown | Nothing |
+| Memory | Persistent knowledge graph | Nothing |
+| Brave Search | Web search | API key (free at brave.com/search/api) |
+
+### Configuration
+
+MCP servers are configured in `backend/mcp_config.yaml`. API keys can be entered directly in the UI (MCP page → Configure).
+
+## Notifications (Gotify)
+
+For the upcoming Agents feature, TextAile uses [Gotify](https://gotify.net) for local push notifications.
+
+### Prerequisites
+
+- Docker and Docker Compose
+- User in the `docker` group (or use sudo)
+
+To add yourself to the docker group:
+```bash
+sudo usermod -aG docker $USER
+# Log out and back in for changes to take effect
+```
+
+### Setup
+
+```bash
+cd gotify
+docker compose up -d
+```
+
+### Access
+
+- Gotify Web UI: http://spark.local:8070
+- Default credentials: `admin` / `admin` (change after first login)
+
+### Phone Setup
+
+1. Install the Gotify app on your phone ([Android](https://play.google.com/store/apps/details?id=com.github.gotify), [iOS via Web](https://gotify.net/docs/web))
+2. Connect to `http://spark.local:8070` (must be on same network)
+3. Log in with your credentials
+
+### Configure in TextAile
+
+1. Open Gotify web UI → Apps → Create Application
+2. Name it "TextAile Agents" and copy the token
+3. In TextAile, go to **Settings** → **Notifications**
+4. Enter Gotify URL (`http://spark.local:8070`) and app token
+5. Click "Save" then "Test" to verify
 
 ## Development
 

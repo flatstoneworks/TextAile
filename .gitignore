@@ -36,6 +36,9 @@ Thumbs.db
 secrets.json
 backend/secrets.json
 
+# Gotify data
+gotify/data/
+
 # Build outputs
 frontend/dist/
 

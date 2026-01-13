@@ -1,0 +1,12 @@
+services:
+  gotify:
+    image: gotify/server
+    container_name: textaile-gotify
+    ports:
+      - "8070:80"
+    environment:
+      - GOTIFY_DEFAULTUSER_NAME=admin
+      - GOTIFY_DEFAULTUSER_PASS=admin
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
