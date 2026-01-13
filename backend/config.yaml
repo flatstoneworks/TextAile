@@ -1,0 +1,144 @@
+# TextAile - LLM Model Configuration
+
+models:
+  # Fast/Small Models (< 5GB, quick inference)
+  llama-3.2-1b:
+    name: "Llama 3.2 1B"
+    path: "meta-llama/Llama-3.2-1B-Instruct"
+    category: "fast"
+    size_gb: 2.5
+    context_length: 131072
+    description: "Ultra-fast, good for quick tasks"
+    tags: ["fast", "general"]
+
+  llama-3.2-3b:
+    name: "Llama 3.2 3B"
+    path: "meta-llama/Llama-3.2-3B-Instruct"
+    category: "fast"
+    size_gb: 6.4
+    context_length: 131072
+    description: "Fast and capable small model"
+    tags: ["fast", "general"]
+
+  phi-3.5-mini:
+    name: "Phi-3.5 Mini"
+    path: "microsoft/Phi-3.5-mini-instruct"
+    category: "fast"
+    size_gb: 7.6
+    context_length: 131072
+    description: "Microsoft's efficient small model"
+    tags: ["fast", "reasoning"]
+
+  gemma-2-2b:
+    name: "Gemma 2 2B"
+    path: "google/gemma-2-2b-it"
+    category: "fast"
+    size_gb: 5.0
+    context_length: 8192
+    description: "Google's efficient instruction model"
+    tags: ["fast", "general"]
+
+  # Quality Models (7-15GB, balanced performance)
+  llama-3.1-8b:
+    name: "Llama 3.1 8B"
+    path: "meta-llama/Llama-3.1-8B-Instruct"
+    category: "quality"
+    size_gb: 16
+    context_length: 131072
+    requires_approval: true
+    approval_url: "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct"
+    description: "Meta's flagship 8B, excellent quality"
+    tags: ["quality", "general", "long-context"]
+
+  mistral-7b:
+    name: "Mistral 7B v0.3"
+    path: "mistralai/Mistral-7B-Instruct-v0.3"
+    category: "quality"
+    size_gb: 14
+    context_length: 32768
+    description: "Fast and capable 7B model"
+    tags: ["quality", "general"]
+
+  qwen2.5-7b:
+    name: "Qwen 2.5 7B"
+    path: "Qwen/Qwen2.5-7B-Instruct"
+    category: "quality"
+    size_gb: 15
+    context_length: 131072
+    description: "Alibaba's multilingual powerhouse"
+    tags: ["quality", "multilingual", "code"]
+
+  gemma-2-9b:
+    name: "Gemma 2 9B"
+    path: "google/gemma-2-9b-it"
+    category: "quality"
+    size_gb: 18
+    context_length: 8192
+    description: "Google's quality 9B model"
+    tags: ["quality", "general"]
+
+  # Large Models (30GB+, maximum capability)
+  llama-3.1-70b:
+    name: "Llama 3.1 70B"
+    path: "meta-llama/Llama-3.1-70B-Instruct"
+    category: "large"
+    size_gb: 140
+    context_length: 131072
+    requires_approval: true
+    approval_url: "https://huggingface.co/meta-llama/Llama-3.1-70B-Instruct"
+    description: "State-of-the-art open model"
+    tags: ["large", "general", "reasoning"]
+
+  qwen2.5-72b:
+    name: "Qwen 2.5 72B"
+    path: "Qwen/Qwen2.5-72B-Instruct"
+    category: "large"
+    size_gb: 145
+    context_length: 131072
+    description: "Top-tier multilingual, code, math"
+    tags: ["large", "multilingual", "code", "math"]
+
+  gemma-2-27b:
+    name: "Gemma 2 27B"
+    path: "google/gemma-2-27b-it"
+    category: "large"
+    size_gb: 54
+    context_length: 8192
+    description: "Google's largest Gemma model"
+    tags: ["large", "general"]
+
+  # Specialized Models
+  deepseek-coder-v2-lite:
+    name: "DeepSeek Coder V2 Lite"
+    path: "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
+    category: "specialized"
+    size_gb: 32
+    context_length: 163840
+    description: "Excellent for programming tasks"
+    tags: ["code", "specialized"]
+
+  qwen2.5-coder-7b:
+    name: "Qwen 2.5 Coder 7B"
+    path: "Qwen/Qwen2.5-Coder-7B-Instruct"
+    category: "specialized"
+    size_gb: 15
+    context_length: 131072
+    description: "Specialized coding model"
+    tags: ["code", "specialized"]
+
+  mathstral-7b:
+    name: "Mathstral 7B"
+    path: "mistralai/mathstral-7B-v0.1"
+    category: "specialized"
+    size_gb: 14
+    context_length: 32768
+    description: "Specialized for mathematics"
+    tags: ["math", "specialized"]
+
+# Default settings
+defaults:
+  model: "qwen2.5-7b"
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 2048
+  system_prompt: "You are a helpful, harmless, and honest AI assistant."

@@ -1,0 +1,187 @@
+# TextAile
+
+A local LLM chat interface inspired by [HollyWool](../HollyWool). TextAile provides a ChatGPT/Claude-like experience for running language models locally on your machine.
+
+![TextAile Screenshot](docs/screenshot.png)
+
+## Features
+
+- **Chat Interface**: Familiar chat UI with streaming responses
+- **Multiple Models**: Support for 15+ LLM models from Llama, Mistral, Qwen, and more
+- **Conversation Management**: Create, rename, delete, and organize conversations
+- **System Prompts**: Customize AI behavior with preset or custom system prompts
+- **Export/Import**: Save conversations as JSON or Markdown
+- **Model Management**: Browse available models, monitor cache usage
+- **GPU Acceleration**: Automatic GPU detection and optimization
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.12+
+- Node.js 18+
+- NVIDIA GPU with CUDA (optional, but recommended)
+
+### Backend Setup
+
+```bash
+cd backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start the server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+```
+
+### Access
+
+- Frontend: http://spark.local:5174
+- Backend API: http://spark.local:8001
+- API Docs: http://spark.local:8001/docs
+
+## Architecture
+
+### Backend
+
+- **FastAPI** - High-performance async web framework
+- **Transformers + Accelerate** - HuggingFace model loading and inference
+- **PyTorch** - GPU-accelerated deep learning
+- **SSE (Server-Sent Events)** - Real-time token streaming
+
+### Frontend
+
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Fast build tooling
+- **Tailwind CSS** - Utility-first styling
+- **shadcn/ui** - Accessible component library
+- **TanStack Query** - Data fetching and caching
+
+## Supported Models
+
+### Fast (< 8GB, quick inference)
+- Llama 3.2 1B, 3B
+- Phi-3.5 Mini
+- Gemma 2 2B
+
+### Quality (8-20GB, balanced)
+- Llama 3.1 8B
+- Mistral 7B v0.3
+- Qwen 2.5 7B
+- Gemma 2 9B
+
+### Large (30GB+, maximum capability)
+- Llama 3.1 70B
+- Qwen 2.5 72B
+- Gemma 2 27B
+
+### Specialized
+- DeepSeek Coder V2 Lite
+- Qwen 2.5 Coder 7B
+- Mathstral 7B
+
+## API Endpoints
+
+### Chat
+```
+POST /api/chat              # Non-streaming completion
+GET  /api/chat/stream       # SSE streaming endpoint
+POST /api/chat/stop         # Stop active generation
+```
+
+### Conversations
+```
+GET  /api/conversations                    # List conversations
+POST /api/conversations                    # Create conversation
+GET  /api/conversations/{id}               # Get conversation
+PUT  /api/conversations/{id}               # Update conversation
+DELETE /api/conversations/{id}             # Delete conversation
+GET  /api/conversations/{id}/export        # Export as JSON/Markdown
+POST /api/conversations/import             # Import from JSON
+```
+
+### Models
+```
+GET  /api/models                  # List available models
+GET  /api/models/detailed         # With cache info
+DELETE /api/models/{id}/cache     # Delete model cache
+GET  /api/health                  # Health check with GPU status
+```
+
+## Configuration
+
+Edit `backend/config.yaml` to add or modify model configurations:
+
+```yaml
+models:
+  my-custom-model:
+    name: "My Custom Model"
+    path: "organization/model-name"
+    category: "quality"
+    size_gb: 14
+    context_length: 32768
+    description: "Description here"
+    tags: ["custom", "chat"]
+```
+
+## Development
+
+### Backend
+
+```bash
+# Format code
+black app/
+
+# Type checking
+mypy app/
+
+# Run tests
+pytest
+```
+
+### Frontend
+
+```bash
+# Type checking
+npm run typecheck
+
+# Linting
+npm run lint
+
+# Build for production
+npm run build
+```
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Send message |
+| `Shift+Enter` | New line |
+
+## License
+
+MIT
+
+## Credits
+
+- Inspired by [HollyWool](../HollyWool) image/video generation UI
+- Built with [HuggingFace Transformers](https://huggingface.co/transformers)
+- UI components from [shadcn/ui](https://ui.shadcn.com)
