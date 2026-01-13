@@ -38,6 +38,7 @@ import type { ConversationSummary } from '@/api/client'
 interface ConversationSidebarProps {
   conversations: ConversationSummary[]
   currentId?: string
+  width?: number
   onNew: () => void
   onSelect: (id: string) => void
   onRename: (id: string, name: string) => void
@@ -50,6 +51,7 @@ interface ConversationSidebarProps {
 export function ConversationSidebar({
   conversations,
   currentId,
+  width = 256,
   onNew,
   onSelect,
   onRename,
@@ -103,7 +105,10 @@ export function ConversationSidebar({
 
   return (
     <>
-      <div className="w-64 border-r border-border flex flex-col h-full bg-card/30">
+      <div
+        className="border-r border-border flex flex-col h-full bg-card/30 flex-shrink-0"
+        style={{ width }}
+      >
         {/* Header */}
         <div className="p-3 flex items-center gap-2">
           <Button

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Layout } from './components/Layout'
 import { ChatPage } from './pages/ChatPage'
 import { ModelsPage } from './pages/ModelsPage'
+import { MCPPage } from './pages/MCPPage'
 import { SettingsPage } from './pages/SettingsPage'
 
 import './index.css'
@@ -29,6 +30,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="chat" element={<ChatPage />} />
             <Route path="chat/:conversationId" element={<ChatPage />} />
             <Route path="models" element={<ModelsPage />} />
+            <Route path="mcp" element={<MCPPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>

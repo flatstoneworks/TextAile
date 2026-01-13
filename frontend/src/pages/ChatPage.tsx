@@ -1,25 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bot, ChevronDown, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { ChatMessage } from '@/components/ChatMessage'
 import { ChatInput } from '@/components/ChatInput'
 import { ConversationSidebar } from '@/components/ConversationSidebar'
 import { SystemPromptEditor } from '@/components/SystemPromptEditor'
-import { cn } from '@/lib/utils'
 import * as api from '@/api/client'
 import type { Message, StreamEvent } from '@/api/client'
+
+const MIN_SIDEBAR_WIDTH = 200
+const MAX_SIDEBAR_WIDTH = 400
+const DEFAULT_SIDEBAR_WIDTH = 256
 
 export function ChatPage() {
   const { conversationId } = useParams()
@@ -31,9 +24,46 @@ export function ChatPage() {
   const [selectedModel, setSelectedModel] = useState<string | undefined>()
   const [systemPromptOpen, setSystemPromptOpen] = useState(false)
   const [editingConvId, setEditingConvId] = useState<string | null>(null)
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('textaile-sidebar-width')
+    return saved ? parseInt(saved, 10) : DEFAULT_SIDEBAR_WIDTH
+  })
+  const [isResizing, setIsResizing] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const stopStreamRef = useRef<(() => void) | null>(null)
+
+  // Save sidebar width to localStorage
+  useEffect(() => {
+    localStorage.setItem('textaile-sidebar-width', String(sidebarWidth))
+  }, [sidebarWidth])
+
+  // Handle resize drag
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsResizing(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, e.clientX))
+      setSidebarWidth(newWidth)
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing])
 
   // Queries
   const { data: conversations = [] } = useQuery({
@@ -150,12 +180,12 @@ export function ChatPage() {
     }
   }
 
-  const handleModelChange = (model: string) => {
-    setSelectedModel(model)
+  const handleModelChange = (modelId: string) => {
+    setSelectedModel(modelId)
     if (conversationId) {
       updateConversation.mutate({
         id: conversationId,
-        data: { model },
+        data: { model: modelId },
       })
     }
   }
@@ -196,6 +226,14 @@ export function ChatPage() {
           setStreamingContent('')
           queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] })
           queryClient.invalidateQueries({ queryKey: ['conversations'] })
+
+          // Generate title after first message exchange
+          const wasFirstMessage = !conversation?.messages?.length
+          if (wasFirstMessage && conversationId) {
+            api.generateTitle(conversationId).then(() => {
+              queryClient.invalidateQueries({ queryKey: ['conversations'] })
+            }).catch(console.error)
+          }
         } else if (event.type === 'error') {
           console.error('Stream error:', event.error)
           setIsStreaming(false)
@@ -225,35 +263,16 @@ export function ChatPage() {
     queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] })
   }
 
-  // Group models by category
-  const modelsByCategory = models.reduce(
-    (acc, model) => {
-      const category = model.category
-      if (!acc[category]) {
-        acc[category] = []
-      }
-      acc[category].push(model)
-      return acc
-    },
-    {} as Record<string, typeof models>
-  )
-
-  const categoryLabels: Record<string, string> = {
-    fast: 'Fast',
-    quality: 'Quality',
-    large: 'Large',
-    specialized: 'Specialized',
-  }
-
   // Get current conversation for system prompt editor
   const editingConversation = conversations.find((c) => c.id === editingConvId)
 
   return (
-    <div className="flex h-[calc(100vh-48px)]">
+    <div className={`flex h-[calc(100vh-48px)] ${isResizing ? 'select-none' : ''}`}>
       {/* Sidebar */}
       <ConversationSidebar
         conversations={conversations}
         currentId={conversationId}
+        width={sidebarWidth}
         onNew={handleNewChat}
         onSelect={handleSelectConversation}
         onRename={handleRename}
@@ -263,60 +282,32 @@ export function ChatPage() {
         onSystemPrompt={handleSystemPromptOpen}
       />
 
+      {/* Resize handle */}
+      <div
+        className="w-1 bg-transparent hover:bg-primary/50 cursor-col-resize transition-colors flex-shrink-0"
+        onMouseDown={handleMouseDown}
+      />
+
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
         {conversationId && conversation ? (
           <>
-            {/* Chat header */}
-            <div className="h-12 flex items-center justify-between px-4 border-b border-border">
-              <div className="flex items-center gap-3">
-                <h2 className="font-medium truncate max-w-[300px]">
-                  {conversation.name}
-                </h2>
-                {conversation.system_prompt && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs gap-1.5"
-                    onClick={() => handleSystemPromptOpen(conversationId)}
-                  >
-                    <Settings2 className="h-3 w-3" />
-                    System Prompt
-                  </Button>
-                )}
-              </div>
-
-              {/* Model selector */}
-              <Select value={selectedModel} onValueChange={handleModelChange}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select model..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(modelsByCategory).map(([category, categoryModels]) => (
-                    <SelectGroup key={category}>
-                      <SelectLabel>{categoryLabels[category] || category}</SelectLabel>
-                      {categoryModels.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{model.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {model.size_gb}GB
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Messages */}
             <ScrollArea className="flex-1" ref={scrollRef}>
-              <div className="max-w-3xl mx-auto">
-                {conversation.messages.map((msg) => (
-                  <ChatMessage key={msg.id} message={msg} />
-                ))}
+              <div className="max-w-3xl mx-auto pt-4">
+                {conversation.messages.map((msg, index) => {
+                  const nextMsg = conversation.messages[index + 1]
+                  const isLastInInteraction =
+                    msg.role === 'assistant' &&
+                    (!nextMsg || nextMsg.role === 'user')
+                  return (
+                    <ChatMessage
+                      key={msg.id}
+                      message={msg}
+                      isLastInInteraction={isLastInInteraction && !isStreaming}
+                    />
+                  )
+                })}
 
                 {/* Streaming message */}
                 {isStreaming && streamingContent && (
@@ -334,14 +325,10 @@ export function ChatPage() {
 
                 {/* Empty state */}
                 {conversation.messages.length === 0 && !isStreaming && (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mb-4">
-                      <Bot className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
-                    <p className="text-muted-foreground text-sm max-w-md">
-                      Type a message below to start chatting with the AI. You can
-                      change the model or set a system prompt using the controls above.
+                  <div className="flex flex-col items-center justify-center py-32 text-center px-4">
+                    <h2 className="text-2xl font-medium mb-2">What can I help with?</h2>
+                    <p className="text-muted-foreground text-sm">
+                      Start a conversation with the AI assistant
                     </p>
                   </div>
                 )}
@@ -354,21 +341,20 @@ export function ChatPage() {
               onStop={handleStopGeneration}
               isLoading={isStreaming}
               disabled={conversationLoading}
+              models={models.map(m => ({ id: m.id, name: m.name }))}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
             />
           </>
         ) : (
           /* No conversation selected */
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center mb-6">
-              <Bot className="h-10 w-10 text-primary" />
-            </div>
-            <h2 className="text-2xl font-semibold mb-2">Welcome to TextAile</h2>
-            <p className="text-muted-foreground mb-6 max-w-md">
-              A local LLM chat interface. Select a conversation from the sidebar
-              or start a new one.
+            <h2 className="text-2xl font-medium mb-2">What can I help with?</h2>
+            <p className="text-muted-foreground mb-8">
+              Select a conversation or start a new one
             </p>
-            <Button onClick={handleNewChat} size="lg">
-              Start New Chat
+            <Button onClick={handleNewChat} size="lg" className="rounded-full px-6">
+              New Chat
             </Button>
           </div>
         )}

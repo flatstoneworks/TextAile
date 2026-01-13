@@ -1,7 +1,18 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react'
-import { Send, Square, Loader2 } from 'lucide-react'
+import { Plus, ArrowUp, Square, Loader2, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+
+interface Model {
+  id: string
+  name: string
+}
 
 interface ChatInputProps {
   onSend: (message: string) => void
@@ -9,6 +20,9 @@ interface ChatInputProps {
   isLoading?: boolean
   disabled?: boolean
   placeholder?: string
+  models?: Model[]
+  selectedModel?: string
+  onModelChange?: (modelId: string) => void
 }
 
 export function ChatInput({
@@ -16,10 +30,15 @@ export function ChatInput({
   onStop,
   isLoading = false,
   disabled = false,
-  placeholder = 'Type your message...',
+  placeholder = 'Ask anything',
+  models = [],
+  selectedModel,
+  onModelChange,
 }: ChatInputProps) {
   const [message, setMessage] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const currentModel = models.find(m => m.id === selectedModel)
 
   // Auto-resize textarea
   useEffect(() => {
@@ -46,9 +65,18 @@ export function ChatInput({
   }
 
   return (
-    <div className="p-4 border-t border-border">
+    <div className="p-4 pb-6">
       <div className="max-w-3xl mx-auto">
-        <div className="relative flex items-end gap-2 bg-muted/50 rounded-xl p-2">
+        <div className="relative flex items-end gap-2 bg-[#2a2a2a] rounded-full px-2 py-1.5">
+          {/* Plus button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10 flex-shrink-0"
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+
           <textarea
             ref={textareaRef}
             value={message}
@@ -59,20 +87,48 @@ export function ChatInput({
             rows={1}
             className={cn(
               'flex-1 resize-none bg-transparent border-0 outline-none text-sm',
-              'placeholder:text-muted-foreground px-2 py-1.5',
-              'min-h-[36px] max-h-[200px]',
+              'placeholder:text-muted-foreground py-1.5',
+              'min-h-[32px] max-h-[200px]',
               'scrollbar-thin'
             )}
           />
+
+          {/* Model selector */}
+          {models.length > 0 && onModelChange && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-full flex-shrink-0 gap-1"
+                >
+                  {currentModel?.name || 'Select model'}
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[160px]">
+                {models.map((model) => (
+                  <DropdownMenuItem
+                    key={model.id}
+                    onClick={() => onModelChange(model.id)}
+                    className={cn(
+                      selectedModel === model.id && 'bg-primary/20'
+                    )}
+                  >
+                    {model.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {isLoading ? (
             <Button
               variant="ghost"
               size="icon"
               onClick={onStop}
-              className="h-9 w-9 rounded-lg bg-destructive/20 hover:bg-destructive/30 text-destructive"
+              className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex-shrink-0"
             >
-              <Square className="h-4 w-4" />
+              <Square className="h-3.5 w-3.5 fill-current" />
             </Button>
           ) : (
             <Button
@@ -81,24 +137,19 @@ export function ChatInput({
               onClick={handleSubmit}
               disabled={!message.trim() || disabled}
               className={cn(
-                'h-9 w-9 rounded-lg transition-colors',
+                'h-8 w-8 rounded-full transition-colors flex-shrink-0',
                 message.trim()
                   ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                  : 'text-muted-foreground'
+                  : 'bg-white/10 text-muted-foreground'
               )}
             >
               {disabled ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <ArrowUp className="h-4 w-4" />
               )}
             </Button>
           )}
-        </div>
-
-        <div className="flex items-center justify-between mt-2 px-2 text-xs text-muted-foreground">
-          <span>Press Enter to send, Shift+Enter for new line</span>
-          <span>{message.length.toLocaleString()} characters</span>
         </div>
       </div>
     </div>

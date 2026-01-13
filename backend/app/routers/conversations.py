@@ -163,6 +163,49 @@ async def export_conversation(conversation_id: str, format: ExportFormat = Expor
         )
 
 
+@router.post("/{conversation_id}/generate-title")
+async def generate_title(conversation_id: str):
+    """Generate a title for the conversation based on its content"""
+    store = get_conversation_store()
+    service = get_inference_service()
+
+    conversation = store.load(conversation_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Need at least one user message to generate title
+    user_messages = [m for m in conversation.messages if m.role == "user"]
+    if not user_messages:
+        return {"title": conversation.name}
+
+    # Use the first user message to generate a title
+    first_message = user_messages[0].content[:500]  # Limit to 500 chars
+
+    prompt = f"""Generate a very short title (3-6 words) for a conversation that starts with this message. Return ONLY the title, no quotes or punctuation at the end.
+
+Message: {first_message}
+
+Title:"""
+
+    try:
+        title = service.generate_sync(
+            messages=[{"role": "user", "content": prompt}],
+            model_id=conversation.model,
+            max_tokens=20,
+            temperature=0.3,
+        )
+
+        # Clean up the title
+        title = title.strip().strip('"\'').strip()
+        if title:
+            conversation.name = title
+            store.save(conversation)
+
+        return {"title": title or conversation.name}
+    except Exception as e:
+        return {"title": conversation.name, "error": str(e)}
+
+
 @router.post("/import", response_model=Conversation)
 async def import_conversation(file: UploadFile = File(...)):
     """Import a conversation from a JSON file"""

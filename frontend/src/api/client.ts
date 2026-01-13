@@ -219,6 +219,13 @@ export async function importConversation(file: File): Promise<Conversation> {
   return handleResponse<Conversation>(res)
 }
 
+export async function generateTitle(id: string): Promise<{ title: string }> {
+  const res = await fetch(`${API_BASE}/conversations/${id}/generate-title`, {
+    method: 'POST',
+  })
+  return handleResponse<{ title: string }>(res)
+}
+
 // Chat
 export async function sendMessage(request: ChatRequest): Promise<ChatResponse> {
   const res = await fetch(`${API_BASE}/chat`, {
@@ -281,4 +288,119 @@ export function streamChat(
   return () => {
     eventSource.close()
   }
+}
+
+// ============================================================================
+// MCP Types
+// ============================================================================
+
+export type MCPServerType = 'stdio' | 'sse' | 'http'
+export type MCPConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+
+export interface MCPSecretStatus {
+  key: string
+  name: string
+  description: string
+  configured: boolean
+}
+
+export interface MCPServer {
+  id: string
+  name: string
+  description: string
+  type: MCPServerType
+  enabled: boolean
+  status: MCPConnectionStatus
+  error_message?: string
+  tool_count: number
+  tools: string[]
+  required_secrets: MCPSecretStatus[]
+}
+
+export interface MCPSetSecretResponse {
+  success: boolean
+  key: string
+  message?: string
+}
+
+export interface MCPTool {
+  name: string
+  description: string
+  input_schema: Record<string, unknown>
+  server_id: string
+  server_name: string
+}
+
+export interface MCPConnectResponse {
+  success: boolean
+  server_id: string
+  status: MCPConnectionStatus
+  error?: string
+  tool_count: number
+}
+
+export interface MCPToolCallResponse {
+  success: boolean
+  tool_name: string
+  result?: unknown
+  error?: string
+  execution_time_ms?: number
+}
+
+// ============================================================================
+// MCP API Functions
+// ============================================================================
+
+export async function getMCPServers(): Promise<MCPServer[]> {
+  const res = await fetch(`${API_BASE}/mcp/servers`)
+  return handleResponse<MCPServer[]>(res)
+}
+
+export async function getMCPServer(serverId: string): Promise<MCPServer> {
+  const res = await fetch(`${API_BASE}/mcp/servers/${serverId}`)
+  return handleResponse<MCPServer>(res)
+}
+
+export async function connectMCPServer(serverId: string): Promise<MCPConnectResponse> {
+  const res = await fetch(`${API_BASE}/mcp/servers/${serverId}/connect`, {
+    method: 'POST',
+  })
+  return handleResponse<MCPConnectResponse>(res)
+}
+
+export async function disconnectMCPServer(serverId: string): Promise<{ success: boolean; server_id: string }> {
+  const res = await fetch(`${API_BASE}/mcp/servers/${serverId}/disconnect`, {
+    method: 'POST',
+  })
+  return handleResponse<{ success: boolean; server_id: string }>(res)
+}
+
+export async function getMCPTools(): Promise<MCPTool[]> {
+  const res = await fetch(`${API_BASE}/mcp/tools`)
+  return handleResponse<MCPTool[]>(res)
+}
+
+export async function callMCPTool(toolName: string, args: Record<string, unknown> = {}): Promise<MCPToolCallResponse> {
+  const res = await fetch(`${API_BASE}/mcp/tools/call`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tool_name: toolName, arguments: args }),
+  })
+  return handleResponse<MCPToolCallResponse>(res)
+}
+
+export async function setMCPSecret(key: string, value: string): Promise<MCPSetSecretResponse> {
+  const res = await fetch(`${API_BASE}/mcp/secrets`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, value }),
+  })
+  return handleResponse<MCPSetSecretResponse>(res)
+}
+
+export async function deleteMCPSecret(key: string): Promise<MCPSetSecretResponse> {
+  const res = await fetch(`${API_BASE}/mcp/secrets/${key}`, {
+    method: 'DELETE',
+  })
+  return handleResponse<MCPSetSecretResponse>(res)
 }

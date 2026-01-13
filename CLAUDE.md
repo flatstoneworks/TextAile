@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code when working with TextAile.
 
+## Communication Guidelines
+
+- **URLs must be clickable**: Always format URLs so they are clickable (no trailing punctuation like periods or commas immediately after the URL)
+  - Good: "View at http://spark.local:5174"
+  - Bad: "View at http://spark.local:5174."
+
 ## Project Overview
 
 TextAile is a local LLM chat interface that provides a ChatGPT/Claude-like experience for running language models locally. It's inspired by HollyWool and shares the same technology stack and design patterns.

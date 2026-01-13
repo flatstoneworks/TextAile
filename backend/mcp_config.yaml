@@ -1,0 +1,49 @@
+# MCP Server Configuration for TextAile
+# TextAile acts as an MCP client connecting to these servers
+
+servers:
+  # Filesystem access - allows reading/writing files
+  filesystem:
+    name: "Filesystem"
+    description: "Access and manage local files and directories"
+    type: "stdio"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/flatstone"]
+    enabled: true
+
+  # Brave Search - web search capability (requires BRAVE_API_KEY env var)
+  brave-search:
+    name: "Brave Search"
+    description: "Search the web using Brave Search API"
+    type: "stdio"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-brave-search"]
+    env:
+      BRAVE_API_KEY: "${BRAVE_API_KEY}"
+    required_secrets:
+      - key: "BRAVE_API_KEY"
+        name: "Brave API Key"
+        description: "Get a free key from brave.com/search/api"
+    enabled: true
+
+  # Memory/Knowledge Graph - persistent memory
+  memory:
+    name: "Memory"
+    description: "Persistent memory and knowledge graph storage"
+    type: "stdio"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+    enabled: true
+
+  # Fetch - HTTP requests (Python-based)
+  fetch:
+    name: "Fetch"
+    description: "Fetch URLs and extract content as markdown"
+    type: "stdio"
+    command: "/home/flatstone/Claude/FLATSTONE/TextAile/backend/venv/bin/python"
+    args: ["-m", "mcp_server_fetch"]
+    enabled: true
+
+defaults:
+  tool_timeout: 30  # Seconds before tool call times out
+  auto_connect: []  # Server IDs to connect on startup

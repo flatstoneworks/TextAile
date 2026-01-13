@@ -2,7 +2,7 @@ import { memo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import { User, Bot, Copy, Check } from 'lucide-react'
+import { Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import type { Message } from '@/api/client'
@@ -10,80 +10,60 @@ import type { Message } from '@/api/client'
 interface ChatMessageProps {
   message: Message
   isStreaming?: boolean
+  isLastInInteraction?: boolean
 }
 
 export const ChatMessage = memo(function ChatMessage({
   message,
   isStreaming = false,
+  isLastInInteraction = false,
 }: ChatMessageProps) {
   const isUser = message.role === 'user'
-  const isAssistant = message.role === 'assistant'
 
+  if (isUser) {
+    // User message: right-aligned bubble
+    return (
+      <div className={cn('px-4 pt-2 pb-1 flex justify-end')}>
+        <div className="max-w-[85%]">
+          <div className="bg-[#2a2a2a] rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed">
+            {message.content}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Assistant message: left-aligned, no bubble
   return (
-    <div
-      className={cn(
-        'flex gap-4 px-4 py-6',
-        isUser && 'bg-transparent',
-        isAssistant && 'bg-card/50'
-      )}
-    >
-      {/* Avatar */}
+    <div className={cn('px-4 pt-1', isLastInInteraction ? 'pb-8' : 'pb-2')}>
       <div
         className={cn(
-          'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center',
-          isUser && 'bg-primary/20 text-primary',
-          isAssistant && 'bg-purple-500/20 text-purple-400'
+          'message-content prose prose-invert max-w-none text-[15px] leading-relaxed',
+          isStreaming && 'streaming-cursor'
         )}
       >
-        {isUser ? (
-          <User className="h-4 w-4" />
-        ) : (
-          <Bot className="h-4 w-4" />
-        )}
-      </div>
-
-      {/* Message content */}
-      <div className="flex-1 min-w-0 space-y-2">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm">
-            {isUser ? 'You' : 'Assistant'}
-          </span>
-          {isAssistant && message.model && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-              {message.model}
-            </span>
-          )}
-        </div>
-
-        <div
-          className={cn(
-            'message-content prose prose-invert max-w-none',
-            isStreaming && 'streaming-cursor'
-          )}
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeHighlight]}
+          components={{
+            pre: ({ children, ...props }) => (
+              <PreBlock {...props}>{children}</PreBlock>
+            ),
+            code: ({ className, children, ...props }) => {
+              const isInline = !className
+              if (isInline) {
+                return <code {...props}>{children}</code>
+              }
+              return (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              )
+            },
+          }}
         >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeHighlight]}
-            components={{
-              pre: ({ children, ...props }) => (
-                <PreBlock {...props}>{children}</PreBlock>
-              ),
-              code: ({ className, children, ...props }) => {
-                const isInline = !className
-                if (isInline) {
-                  return <code {...props}>{children}</code>
-                }
-                return (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                )
-              },
-            }}
-          >
-            {message.content || ' '}
-          </ReactMarkdown>
-        </div>
+          {message.content || ' '}
+        </ReactMarkdown>
       </div>
     </div>
   )
