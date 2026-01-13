@@ -138,3 +138,35 @@ defaults:
 - **Colors**: Primary is purple (#5e6ad2), matching HollyWool
 - **Icons**: Lucide React throughout
 - **Font**: System font stack with antialiasing
+
+---
+
+## Session Notes (2026-01-13)
+
+### What Was Built
+TextAile - A local LLM chat interface inspired by HollyWool, providing a ChatGPT/Claude-like experience for running local language models.
+
+### Key Decisions Made
+- **Backend**: Transformers + Accelerate (HuggingFace ecosystem)
+- **Response style**: Streaming via SSE
+- **Default model**: Qwen 2.5 7B (changed from Llama 3.2 1B which requires HF approval)
+- **Ports**: Backend 8001, Frontend 5174 (different from HollyWool's 8000/5173)
+
+### Issues Fixed During Development
+1. **PyTorch CUDA**: Installed from PyTorch nightly with CUDA 13.0 for aarch64/GB10 GPU
+2. **Vite host blocking**: Added `allowedHosts: ['spark.local']` to vite.config.ts
+3. **Route ordering**: Moved `/api/models/cache-status` before `/{model_id}` to fix 404
+4. **Default model**: Changed to `qwen2.5-7b` in config.yaml and fixed frontend to use backend default
+
+### Running the Project
+```bash
+# Backend
+cd backend && source venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8001
+
+# Frontend  
+cd frontend && npm run dev
+```
+
+### GitHub
+Repository: https://github.com/flatstoneworks/TextAile
