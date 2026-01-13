@@ -180,6 +180,17 @@ class LLMInferenceService:
             self.model = None
             self.tokenizer = None
             self.current_model_id = None
+
+            # Provide helpful error for gated models
+            error_msg = str(e)
+            if "gated repo" in error_msg.lower() or "403" in error_msg:
+                approval_url = model_info.get("approval_url")
+                if not approval_url:
+                    approval_url = f"https://huggingface.co/{model_path}"
+                raise RuntimeError(
+                    f"Model '{model_info['name']}' requires approval. "
+                    f"Request access at: {approval_url}"
+                ) from e
             raise
 
     def stop_generation(self) -> None:

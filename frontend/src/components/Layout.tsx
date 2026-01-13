@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { MessageSquare, Box, Settings, Sparkles, Plug } from 'lucide-react'
+import { MessageSquare, Box, Settings, Sparkles, Plug, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/chat', icon: MessageSquare, label: 'Chat' },
   { to: '/models', icon: Box, label: 'Models' },
   { to: '/mcp', icon: Plug, label: 'MCP' },
+  { to: '/agents', icon: Bot, label: 'Agents' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 

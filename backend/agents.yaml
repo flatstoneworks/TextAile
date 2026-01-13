@@ -1,0 +1,80 @@
+# TextAile Agent Configurations
+#
+# Agents are autonomous tasks that:
+# 1. Fetch data from various sources (URLs, search, files)
+# 2. Process with LLM to generate reports
+# 3. Save reports as markdown documents
+# 4. Send notifications via Gotify
+#
+# Schedule format: standard cron (minute hour day month weekday)
+# Examples:
+#   "0 8 * * *"     - Daily at 8:00 AM
+#   "0 */4 * * *"   - Every 4 hours
+#   "30 9 * * 1-5"  - Weekdays at 9:30 AM
+#   null            - Manual trigger only
+
+agents:
+  tech-news:
+    name: "Tech News Digest"
+    description: "Daily summary of top tech stories from Hacker News and Lobsters"
+    enabled: true
+    schedule: "0 8 * * *"  # Daily at 8am
+
+    sources:
+      - type: fetch
+        url: "https://news.ycombinator.com"
+        label: "Hacker News"
+      - type: fetch
+        url: "https://lobste.rs"
+        label: "Lobsters"
+
+    prompt: |
+      Analyze these tech news sources and create a digest with:
+
+      1. **Top 5 Stories** - The most interesting/significant stories
+         - Title and brief summary (2-3 sentences)
+         - Why it matters
+
+      2. **Trends** - Any common themes across the sources
+
+      3. **Quick Hits** - 3-5 other notable stories in one sentence each
+
+      Keep the tone professional but accessible.
+
+    output:
+      title: "Tech Digest - {date}"
+
+    notify:
+      enabled: true
+      title: "Tech Digest Ready"
+      priority: 5
+
+  weather-brief:
+    name: "Weather Brief"
+    description: "Daily weather summary and forecast"
+    enabled: false  # Disabled - needs location configuration
+    schedule: "0 7 * * *"  # Daily at 7am
+
+    sources:
+      - type: brave
+        query: "weather forecast today"
+        label: "Weather Search"
+        count: 3
+
+    prompt: |
+      Based on the weather information, create a brief daily weather summary:
+
+      1. Current conditions
+      2. Today's forecast (high/low, precipitation)
+      3. What to wear/bring
+      4. Any weather alerts
+
+      Keep it concise and actionable.
+
+    output:
+      title: "Weather - {date}"
+
+    notify:
+      enabled: true
+      title: "Weather Brief"
+      priority: 3

@@ -14,7 +14,7 @@ A local LLM chat interface inspired by [HollyWool](../HollyWool). TextAile provi
 - **Model Management**: Browse available models, monitor cache usage
 - **GPU Acceleration**: Automatic GPU detection and optimization
 - **MCP Integration**: Connect to Model Context Protocol servers for extended capabilities
-- **Personal Agents** *(coming soon)*: Autonomous background agents with notifications
+- **Personal Agents**: Autonomous background agents that fetch data, process with LLM, and send notifications
 
 ## Quick Start
 
@@ -24,31 +24,35 @@ A local LLM chat interface inspired by [HollyWool](../HollyWool). TextAile provi
 - Node.js 18+
 - NVIDIA GPU with CUDA (optional, but recommended)
 
-### Backend Setup
+### One-Command Start
 
 ```bash
-cd backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+./start.sh
 ```
 
-### Frontend Setup
+This will automatically:
+- Create a Python virtual environment (if needed)
+- Install all Python dependencies
+- Install all Node.js dependencies
+- Start both backend and frontend servers
 
+### Manual Setup
+
+If you prefer to start services manually:
+
+**Backend:**
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8001
+```
+
+**Frontend:**
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start dev server
 npm run dev
 ```
 
@@ -146,6 +150,17 @@ DELETE /api/settings/notifications       # Remove notification config
 POST /api/settings/notifications/test    # Send test notification
 ```
 
+### Agents
+```
+GET  /api/agents                         # List all agents
+GET  /api/agents/{id}                    # Get agent info
+GET  /api/agents/{id}/config             # Get full configuration
+POST /api/agents/{id}/run                # Trigger manual run
+GET  /api/agents/{id}/runs               # List run history
+GET  /api/agents/{id}/runs/{run_id}      # Get run details + report
+GET  /api/agents/scheduler/status        # Scheduler status
+```
+
 ## Configuration
 
 Edit `backend/config.yaml` to add or modify model configurations:
@@ -161,6 +176,60 @@ models:
     description: "Description here"
     tags: ["custom", "chat"]
 ```
+
+## Agents
+
+Agents are autonomous tasks that run on a schedule or manually, fetching data from various sources, processing it with the LLM, and optionally sending notifications.
+
+### Configuration
+
+Agents are defined in `backend/agents.yaml`:
+
+```yaml
+agents:
+  tech-news:
+    name: "Tech News Digest"
+    description: "Daily summary of top tech stories"
+    enabled: true
+    schedule: "0 8 * * *"  # Cron: 8am daily (null for manual only)
+
+    sources:
+      - type: fetch
+        url: "https://news.ycombinator.com"
+        label: "Hacker News"
+      - type: brave        # Requires API key
+        query: "AI news today"
+        count: 5
+
+    prompt: |
+      Analyze these sources and create a digest...
+
+    output:
+      title: "Tech Digest - {date}"
+
+    notify:
+      enabled: true
+      title: "Tech Digest Ready"
+      priority: 5
+```
+
+### Source Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `fetch` | Fetch URL content | `url: "https://example.com"` |
+| `brave` | Brave web search | `query: "AI news", count: 5` |
+| `file` | Read local file | `path: "/path/to/file.md"` |
+| `mcp` | Custom MCP tool | `tool: "memory", action: "search"` |
+
+### Output
+
+Each agent run produces:
+- `report.md` - The generated markdown document
+- `meta.json` - Run metadata (timing, status, token usage)
+- `sources/` - Raw fetched content (optional)
+
+Reports are viewable in the UI at `/agents/{id}/runs/{run_id}`
 
 ## MCP Servers
 

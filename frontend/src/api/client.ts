@@ -459,3 +459,192 @@ export async function sendTestNotification(
   })
   return handleResponse<NotificationResponse>(res)
 }
+
+// ============================================================================
+// Agent Types
+// ============================================================================
+
+export type TriggerType = 'scheduled' | 'manual'
+export type RunStatus = 'pending' | 'running' | 'completed' | 'failed'
+export type SourceType = 'fetch' | 'brave' | 'file' | 'mcp'
+
+export interface AgentInfo {
+  id: string
+  name: string
+  description: string
+  enabled: boolean
+  schedule: string | null
+  source_count: number
+  next_run: string | null
+  last_run: string | null
+  last_status: RunStatus | null
+  total_runs: number
+}
+
+export interface AgentConfig {
+  id: string
+  name: string
+  description: string
+  enabled: boolean
+  schedule: string | null
+  sources: SourceConfig[]
+  prompt: string
+  output: OutputConfig
+  notify: NotifyConfig
+  created_at: string
+  updated_at: string
+}
+
+export interface SourceConfig {
+  type: SourceType
+  url?: string
+  query?: string
+  path?: string
+  tool?: string
+  action?: string
+  args?: Record<string, unknown>
+  label?: string
+  count?: number
+}
+
+export interface OutputConfig {
+  title: string
+  template?: string
+}
+
+export interface NotifyConfig {
+  enabled: boolean
+  title: string
+  priority: number
+}
+
+export interface RunSummary {
+  run_id: string
+  agent_id: string
+  trigger: TriggerType
+  status: RunStatus
+  started_at: string
+  completed_at: string | null
+  duration_ms: number | null
+  source_count: number
+  output_chars: number
+  error: string | null
+}
+
+export interface SourceResult {
+  label: string
+  type: SourceType
+  status: string
+  chars: number
+  error: string | null
+  fetched_at: string
+}
+
+export interface LLMUsage {
+  model: string
+  input_tokens: number
+  output_tokens: number
+}
+
+export interface OutputInfo {
+  path: string
+  url: string
+  chars: number
+}
+
+export interface RunMeta {
+  run_id: string
+  agent_id: string
+  agent_name: string
+  trigger: TriggerType
+  status: RunStatus
+  started_at: string
+  completed_at: string | null
+  duration_ms: number | null
+  sources: SourceResult[]
+  llm: LLMUsage | null
+  output: OutputInfo | null
+  notification_sent: boolean
+  error: string | null
+}
+
+export interface RunDetail {
+  meta: RunMeta
+  report: string | null
+}
+
+export interface TriggerRunResponse {
+  run_id: string
+  agent_id: string
+  status: RunStatus
+  message: string
+}
+
+export interface SchedulerStatus {
+  running: boolean
+  jobs: Array<{
+    agent_id: string
+    next_run: string | null
+  }>
+}
+
+// ============================================================================
+// Agent API Functions
+// ============================================================================
+
+export async function getAgents(): Promise<AgentInfo[]> {
+  const res = await fetch(`${API_BASE}/agents`)
+  return handleResponse<AgentInfo[]>(res)
+}
+
+export async function getAgent(agentId: string): Promise<AgentInfo> {
+  const res = await fetch(`${API_BASE}/agents/${agentId}`)
+  return handleResponse<AgentInfo>(res)
+}
+
+export async function getAgentConfig(agentId: string): Promise<AgentConfig> {
+  const res = await fetch(`${API_BASE}/agents/${agentId}/config`)
+  return handleResponse<AgentConfig>(res)
+}
+
+export async function triggerAgentRun(agentId: string): Promise<TriggerRunResponse> {
+  const res = await fetch(`${API_BASE}/agents/${agentId}/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  return handleResponse<TriggerRunResponse>(res)
+}
+
+export async function getAgentRuns(agentId: string, limit = 50, offset = 0): Promise<RunSummary[]> {
+  const res = await fetch(`${API_BASE}/agents/${agentId}/runs?limit=${limit}&offset=${offset}`)
+  return handleResponse<RunSummary[]>(res)
+}
+
+export async function getAgentRun(agentId: string, runId: string): Promise<RunDetail> {
+  const res = await fetch(`${API_BASE}/agents/${agentId}/runs/${runId}`)
+  return handleResponse<RunDetail>(res)
+}
+
+export async function getAgentReport(agentId: string, runId: string): Promise<{ content: string }> {
+  const res = await fetch(`${API_BASE}/agents/${agentId}/runs/${runId}/report`)
+  return handleResponse<{ content: string }>(res)
+}
+
+export async function addReportToContext(
+  agentId: string,
+  runId: string,
+  conversationId: string
+): Promise<{ success: boolean; message: string; conversation_id: string }> {
+  const res = await fetch(`${API_BASE}/agents/${agentId}/runs/${runId}/context`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ conversation_id: conversationId }),
+  })
+  return handleResponse(res)
+}
+
+export async function getSchedulerStatus(): Promise<SchedulerStatus> {
+  const res = await fetch(`${API_BASE}/agents/scheduler/status`)
+  return handleResponse<SchedulerStatus>(res)
+}

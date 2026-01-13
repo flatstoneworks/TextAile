@@ -10,6 +10,8 @@ models:
     context_length: 131072
     description: "Ultra-fast, good for quick tasks"
     tags: ["fast", "general"]
+    requires_approval: true
+    approval_url: "https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct"
 
   llama-3.2-3b:
     name: "Llama 3.2 3B"
@@ -19,6 +21,8 @@ models:
     context_length: 131072
     description: "Fast and capable small model"
     tags: ["fast", "general"]
+    requires_approval: true
+    approval_url: "https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct"
 
   phi-3.5-mini:
     name: "Phi-3.5 Mini"

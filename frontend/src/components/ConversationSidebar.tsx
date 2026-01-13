@@ -6,7 +6,6 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  Download,
   FileJson,
   FileText,
   Upload,

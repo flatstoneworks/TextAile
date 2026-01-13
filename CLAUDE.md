@@ -21,20 +21,26 @@ TextAile/
 │   │   ├── main.py            # FastAPI app entry point
 │   │   ├── models/
 │   │   │   ├── schemas.py     # Chat/conversation Pydantic models
-│   │   │   └── mcp_schemas.py # MCP-related Pydantic models
+│   │   │   ├── mcp_schemas.py # MCP-related Pydantic models
+│   │   │   └── agent_schemas.py # Agent Pydantic models
 │   │   ├── routers/           # API route handlers
 │   │   │   ├── chat.py        # Chat & streaming endpoints
 │   │   │   ├── conversations.py # Conversation CRUD
 │   │   │   ├── models.py      # Model management
 │   │   │   ├── mcp.py         # MCP server management
-│   │   │   └── settings.py    # Settings & notifications
+│   │   │   ├── settings.py    # Settings & notifications
+│   │   │   └── agents.py      # Agent management & execution
 │   │   └── services/          # Business logic
 │   │       ├── inference.py   # LLM loading & generation
 │   │       ├── conversation_store.py # Persistence
 │   │       ├── mcp_client.py  # MCP client connections
-│   │       └── secrets_store.py # API key storage
+│   │       ├── secrets_store.py # API key storage
+│   │       ├── agent_store.py # Agent config & run persistence
+│   │       ├── agent_runner.py # Agent execution logic
+│   │       └── agent_scheduler.py # APScheduler for cron jobs
 │   ├── config.yaml            # Model configurations
 │   ├── mcp_config.yaml        # MCP server configurations
+│   ├── agents.yaml            # Agent configurations
 │   ├── secrets.json           # API keys (gitignored)
 │   └── requirements.txt
 │
@@ -51,7 +57,10 @@ TextAile/
 │   │   │   ├── ChatPage.tsx
 │   │   │   ├── ModelsPage.tsx
 │   │   │   ├── MCPPage.tsx    # MCP server management
-│   │   │   └── SettingsPage.tsx
+│   │   │   ├── SettingsPage.tsx
+│   │   │   ├── AgentsPage.tsx # Agent list & status
+│   │   │   ├── AgentDetailPage.tsx # Single agent + runs
+│   │   │   └── AgentRunPage.tsx # Report viewer
 │   │   ├── lib/utils.ts
 │   │   ├── main.tsx
 │   │   └── index.css
@@ -60,7 +69,9 @@ TextAile/
 ├── gotify/                     # Notification server
 │   └── docker-compose.yml
 │
-└── data/conversations/         # Persisted conversation JSON files
+├── start.sh                    # One-command startup script
+├── data/conversations/         # Persisted conversation JSON files
+└── data/agents/                # Agent run data & reports
 ```
 
 ## Development Commands
@@ -184,11 +195,11 @@ async def send_notification(title: str, message: str):
         )
 ```
 
-## Agents (Planned)
+## Agents
 
-Personal autonomous agents that run on schedule and send notifications.
+Personal autonomous agents that run on schedule and send notifications with generated reports.
 
-### Planned Architecture
+### Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -207,21 +218,88 @@ Personal autonomous agents that run on schedule and send notifications.
                                     └──────────────────────┘
 ```
 
-### Agent Definition (Planned)
+### Agent Definition (agents.yaml)
 
 ```yaml
 agents:
   tech-news:
     name: "Tech News Digest"
+    description: "Daily summary of top tech stories"
     schedule: "0 8 * * *"  # Cron: Daily at 8am
+    enabled: true
     sources:
       - type: fetch
+        label: "Hacker News"
         url: "https://news.ycombinator.com"
-    prompt: "Summarize the top 5 stories"
+      - type: fetch
+        label: "Lobsters"
+        url: "https://lobste.rs"
+    prompt: |
+      Analyze the tech news from these sources and create a digest with:
+      1. Top 5 most interesting stories
+      2. Key themes or trends
+      3. Brief summary of each story
+    output:
+      format: markdown
+      title: "{agent_name} - {date}"
     notify:
-      title: "Morning Tech Digest"
-      priority: 3
+      enabled: true
+      title: "📰 Tech News Ready"
+      priority: 5
 ```
+
+### Source Types
+
+| Type | Description | Config |
+|------|-------------|--------|
+| `fetch` | Fetch URL via MCP | `url`, `label` |
+| `brave` | Web search | `query`, `count` |
+| `file` | Read local file | `path` |
+| `mcp` | Custom MCP tool | `tool`, `action`, `args` |
+
+### Agent Execution Flow
+
+1. **Fetch Sources**: Collects data from all configured sources via MCP
+2. **Generate Report**: Sends sources + prompt to LLM (Qwen 2.5 7B by default)
+3. **Save Report**: Stores markdown report with unique run ID
+4. **Send Notification**: Pushes to Gotify with link to report
+
+### Run Data Structure
+
+```
+data/agents/{agent_id}/runs/{run_id}/
+├── meta.json       # Run metadata (status, timing, errors)
+├── source_0.txt    # Raw content from first source
+├── source_1.txt    # Raw content from second source
+└── report.md       # Generated markdown report
+```
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/agents` | GET | List all agents |
+| `/api/agents/{id}` | GET | Get agent details |
+| `/api/agents/{id}/run` | POST | Trigger manual run |
+| `/api/agents/{id}/runs` | GET | List run history |
+| `/api/agents/{id}/runs/{run_id}` | GET | Get run details + report |
+
+### Frontend Pages
+
+- **Agents List** (`/agents`): Overview of all agents with status and run buttons
+- **Agent Detail** (`/agents/{id}`): Configuration, sources, and run history
+- **Run Report** (`/agents/{id}/runs/{run_id}`): Rendered markdown report with metadata
+
+### Default Model
+
+Agents use `qwen2.5-7b` by default because it doesn't require HuggingFace approval. Models like Llama 3.2 require requesting access at their HuggingFace pages first.
+
+### Technical Notes
+
+- **Scheduler**: Uses APScheduler with MemoryJobStore (in-memory, jobs reload from YAML on restart)
+- **Concurrent Runs**: Allowed - same agent can run multiple times simultaneously
+- **Run Retention**: All runs kept forever, no automatic cleanup
+- **Model Loading**: ~72 seconds for first run, cached thereafter
 
 ## Design Patterns
 
@@ -232,58 +310,63 @@ agents:
 
 ---
 
-## Session Notes (2026-01-13) - Continued
+## Session Notes
 
-### What Was Added
+### Session 1 (2026-01-13) - MCP & Notifications
 
-#### MCP Client Support
+#### What Was Added
 - MCP client service connecting to external servers (filesystem, fetch, memory, brave-search)
 - Tool discovery from connected servers
 - API key management via UI
-- MCP page in navigation showing server status and tools
+- Chat UI improvements (bubbles, model selector, resizable sidebar)
+- Gotify notification system with Docker setup
 
-#### Chat UI Improvements
-- User messages as dark bubbles, right-aligned
-- AI messages without bubbles, left-aligned
-- Model selector dropdown in input bar
-- Resizable sidebar with drag handle
-- Auto-generated session titles
-
-#### Notification System (Gotify)
-- Docker compose setup for local Gotify server
-- Settings page UI for configuration
-- Test notification button
-- Secrets stored locally (not in git)
-
-### Key Files Added
-
+#### Key Files
 ```
-backend/app/routers/mcp.py          # MCP server management API
-backend/app/routers/settings.py     # Notification settings API
-backend/app/services/mcp_client.py  # MCP client connections
-backend/app/services/secrets_store.py # API key storage
-backend/app/models/mcp_schemas.py   # MCP Pydantic models
-backend/mcp_config.yaml             # MCP server configurations
-frontend/src/pages/MCPPage.tsx      # MCP server management UI
-gotify/docker-compose.yml           # Gotify container setup
+backend/app/routers/mcp.py, settings.py
+backend/app/services/mcp_client.py, secrets_store.py
+backend/app/models/mcp_schemas.py
+backend/mcp_config.yaml
+frontend/src/pages/MCPPage.tsx
+gotify/docker-compose.yml
 ```
 
-### Bug Fixes
-- Fixed `_refresh_tools()` checking status before it was set to CONNECTED
-- Fixed Fetch MCP server using correct Python package (mcp-server-fetch via pip)
+### Session 2 (2026-01-13) - Agents Implementation
+
+#### What Was Added
+- **Full Agents Feature**: Autonomous tasks that fetch → LLM → report → notify
+- APScheduler for cron-based scheduling
+- Agent YAML configuration system
+- Run history with persistent storage
+- Markdown report viewer in frontend
+
+#### Key Files
+```
+backend/app/models/agent_schemas.py   # Pydantic models
+backend/app/services/agent_store.py   # Config & run persistence
+backend/app/services/agent_runner.py  # Execution logic
+backend/app/services/agent_scheduler.py # APScheduler
+backend/app/routers/agents.py         # API endpoints
+backend/agents.yaml                   # Agent configs
+frontend/src/pages/AgentsPage.tsx     # Agent list
+frontend/src/pages/AgentDetailPage.tsx # Agent + runs
+frontend/src/pages/AgentRunPage.tsx   # Report viewer
+start.sh                              # One-command startup
+```
+
+#### Bug Fixes
+- Fixed scheduler pickling error by using module-level callback functions
+- Changed from SQLAlchemyJobStore to MemoryJobStore
+- Added gated model error handling with HuggingFace approval URLs
+- Changed default agent model to Qwen 2.5 7B (no approval needed)
+
+#### First Successful Agent Run
+- Tech News Digest: Fetched HN + Lobsters → Generated 3099 char report → Sent Gotify notification
 
 ### Git Remote
-Configured SSH for flatstoneworks account:
 ```bash
 git remote set-url origin git@github-flatstoneworks:flatstoneworks/TextAile.git
 ```
-
-### Next Steps (Agents Feature)
-1. Create agent schema and configuration
-2. Implement scheduler service (APScheduler)
-3. Build agent runner (fetch → LLM → notify)
-4. Add Agents page to UI for management
-5. Integrate with MCP tools for data fetching
 
 ### GitHub
 Repository: https://github.com/flatstoneworks/TextAile
