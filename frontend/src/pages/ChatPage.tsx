@@ -21,6 +21,9 @@ export function ChatPage() {
 
   const [streamingContent, setStreamingContent] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null)
+  const [requestStartTime, setRequestStartTime] = useState<number | null>(null)
+  const [elapsedTime, setElapsedTime] = useState(0)
   const [selectedModel, setSelectedModel] = useState<string | undefined>()
   const [systemPromptOpen, setSystemPromptOpen] = useState(false)
   const [editingConvId, setEditingConvId] = useState<string | null>(null)
@@ -31,6 +34,7 @@ export function ChatPage() {
   const [isResizing, setIsResizing] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollAnchorRef = useRef<HTMLDivElement>(null)
   const stopStreamRef = useRef<(() => void) | null>(null)
 
   // Save sidebar width to localStorage
@@ -78,8 +82,8 @@ export function ChatPage() {
   })
 
   const { data: models = [] } = useQuery({
-    queryKey: ['models'],
-    queryFn: api.getModels,
+    queryKey: ['models', 'detailed'],
+    queryFn: api.getModelsDetailed,
   })
 
   // Set selected model when conversation changes
@@ -91,10 +95,26 @@ export function ChatPage() {
 
   // Auto-scroll to bottom
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    if (scrollAnchorRef.current) {
+      // Use instant scroll during streaming for better performance
+      const behavior = isStreaming ? 'instant' : 'smooth'
+      scrollAnchorRef.current.scrollIntoView({ behavior, block: 'end' })
     }
-  }, [conversation?.messages, streamingContent])
+  }, [conversation?.messages, streamingContent, loadingMessage, isStreaming])
+
+  // Update elapsed time during loading/thinking
+  useEffect(() => {
+    if (!requestStartTime || !loadingMessage) {
+      setElapsedTime(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - requestStartTime) / 1000))
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [requestStartTime, loadingMessage])
 
   // Mutations
   const createConversation = useMutation({
@@ -195,6 +215,9 @@ export function ChatPage() {
 
     setIsStreaming(true)
     setStreamingContent('')
+    setLoadingMessage(null)
+    setRequestStartTime(Date.now())
+    setElapsedTime(0)
 
     // Create a temporary streaming message
     const tempMessages: Message[] = [
@@ -219,11 +242,19 @@ export function ChatPage() {
       message,
       { model: selectedModel },
       (event: StreamEvent) => {
-        if (event.type === 'token' && event.content) {
+        if (event.type === 'loading' && event.content) {
+          setLoadingMessage(event.content)
+        } else if (event.type === 'thinking' && event.content) {
+          setLoadingMessage(event.content)
+        } else if (event.type === 'token' && event.content) {
+          setLoadingMessage(null)  // Clear loading message when tokens start
+          setRequestStartTime(null)
           setStreamingContent((prev) => prev + event.content)
         } else if (event.type === 'done') {
           setIsStreaming(false)
           setStreamingContent('')
+          setLoadingMessage(null)
+          setRequestStartTime(null)
           queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] })
           queryClient.invalidateQueries({ queryKey: ['conversations'] })
 
@@ -238,6 +269,8 @@ export function ChatPage() {
           console.error('Stream error:', event.error)
           setIsStreaming(false)
           setStreamingContent('')
+          setLoadingMessage(null)
+          setRequestStartTime(null)
           queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] })
         }
       },
@@ -245,6 +278,8 @@ export function ChatPage() {
         console.error('Stream connection error:', error)
         setIsStreaming(false)
         setStreamingContent('')
+        setLoadingMessage(null)
+        setRequestStartTime(null)
         queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] })
       }
     )
@@ -260,6 +295,8 @@ export function ChatPage() {
     await api.stopGeneration()
     setIsStreaming(false)
     setStreamingContent('')
+    setLoadingMessage(null)
+    setRequestStartTime(null)
     queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] })
   }
 
@@ -309,6 +346,23 @@ export function ChatPage() {
                   )
                 })}
 
+                {/* Loading indicator */}
+                {isStreaming && loadingMessage && !streamingContent && (
+                  <div className="flex items-center gap-3 px-4 py-6 text-muted-foreground">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                    </div>
+                    <span className="text-sm">{loadingMessage}</span>
+                    {elapsedTime > 0 && (
+                      <span className="text-xs text-muted-foreground/70">
+                        {elapsedTime}s
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Streaming message */}
                 {isStreaming && streamingContent && (
                   <ChatMessage
@@ -332,6 +386,9 @@ export function ChatPage() {
                     </p>
                   </div>
                 )}
+
+                {/* Scroll anchor */}
+                <div ref={scrollAnchorRef} className="h-4" />
               </div>
             </ScrollArea>
 
@@ -341,7 +398,7 @@ export function ChatPage() {
               onStop={handleStopGeneration}
               isLoading={isStreaming}
               disabled={conversationLoading}
-              models={models.map(m => ({ id: m.id, name: m.name }))}
+              models={models.map(m => ({ id: m.id, name: m.name, is_cached: m.is_cached, requires_approval: m.requires_approval }))}
               selectedModel={selectedModel}
               onModelChange={handleModelChange}
             />

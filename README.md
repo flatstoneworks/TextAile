@@ -58,9 +58,9 @@ npm run dev
 
 ### Access
 
-- Frontend: http://spark.local:5174
-- Backend API: http://spark.local:8001
-- API Docs: http://spark.local:8001/docs
+- Frontend: http://spark.local:8040
+- Backend API: http://spark.local:8041
+- API Docs: http://spark.local:8041/docs
 
 ## Architecture
 

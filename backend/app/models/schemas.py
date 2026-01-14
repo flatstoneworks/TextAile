@@ -80,6 +80,8 @@ class StreamEventType(str, Enum):
     DONE = "done"
     ERROR = "error"
     START = "start"
+    LOADING = "loading"  # Model is being loaded
+    THINKING = "thinking"  # Model loaded, processing prompt
 
 
 class StreamEvent(BaseModel):

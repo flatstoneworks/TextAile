@@ -36,7 +36,7 @@ class AgentRunner:
         inference: LLMInferenceService,
         mcp: MCPClientService,
         secrets: SecretsStore,
-        base_url: str = "http://spark.local:5174",
+        base_url: str = "http://spark.local:8040",
     ):
         self.store = store
         self.inference = inference

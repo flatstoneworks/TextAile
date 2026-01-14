@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react'
-import { Plus, ArrowUp, Square, Loader2, ChevronDown } from 'lucide-react'
+import { Plus, ArrowUp, Square, Loader2, ChevronDown, Check, Download, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils'
 interface Model {
   id: string
   name: string
+  is_cached?: boolean
+  requires_approval?: boolean
 }
 
 interface ChatInputProps {
@@ -105,16 +107,32 @@ export function ChatInput({
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[160px]">
+              <DropdownMenuContent align="end" className="min-w-[220px]">
                 {models.map((model) => (
                   <DropdownMenuItem
                     key={model.id}
                     onClick={() => onModelChange(model.id)}
                     className={cn(
+                      'flex items-center justify-between gap-2',
                       selectedModel === model.id && 'bg-primary/20'
                     )}
                   >
-                    {model.name}
+                    <span className={cn(
+                      !model.is_cached && 'text-muted-foreground',
+                      model.requires_approval && !model.is_cached && 'text-muted-foreground/50'
+                    )}>
+                      {model.name}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {model.requires_approval && !model.is_cached && (
+                        <Lock className="h-3 w-3 text-yellow-500 flex-shrink-0" />
+                      )}
+                      {model.is_cached ? (
+                        <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0" />
+                      )}
+                    </div>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

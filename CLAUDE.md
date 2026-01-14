@@ -5,8 +5,8 @@ This file provides guidance to Claude Code when working with TextAile.
 ## Communication Guidelines
 
 - **URLs must be clickable**: Always format URLs so they are clickable (no trailing punctuation like periods or commas immediately after the URL)
-  - Good: "View at http://spark.local:5174"
-  - Bad: "View at http://spark.local:5174."
+  - Good: "View at http://spark.local:8040"
+  - Bad: "View at http://spark.local:8040."
 
 ## Project Overview
 
@@ -87,7 +87,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001
 
 # Test endpoints
 curl http://spark.local:8001/api/health
-curl http://spark.local:8001/api/mcp/servers
+curl http://spark.local:8041/api/mcp/servers
 ```
 
 ### Frontend
@@ -95,7 +95,7 @@ curl http://spark.local:8001/api/mcp/servers
 ```bash
 cd frontend
 
-npm run dev          # Start dev server (port 5174)
+npm run dev          # Start dev server (port 8040)
 npm run build        # Production build
 npm run typecheck    # TypeScript check
 npm run lint         # ESLint
@@ -111,9 +111,9 @@ docker compose down    # Stop Gotify
 
 ## URLs
 
-- Frontend: http://spark.local:5174
-- Backend API: http://spark.local:8001
-- API Docs: http://spark.local:8001/docs
+- Frontend: http://spark.local:8040
+- Backend API: http://spark.local:8041
+- API Docs: http://spark.local:8041/docs
 - Gotify: http://spark.local:8070
 
 ## Key Architecture Decisions

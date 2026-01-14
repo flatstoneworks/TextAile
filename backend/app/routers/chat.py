@@ -1,5 +1,6 @@
 """Chat and streaming endpoints"""
 
+import asyncio
 import json
 import logging
 from datetime import datetime
@@ -146,6 +147,11 @@ async def chat_stream(
         full_response = ""
 
         try:
+            # Check if model needs to be loaded
+            needs_loading = service.current_model_id != model_id
+            model_info = service.get_model_info(model_id)
+            model_name = model_info.get("name", model_id) if model_info else model_id
+
             # Send start event
             yield {
                 "event": "message",
@@ -155,7 +161,29 @@ async def chat_stream(
                 })
             }
 
-            # Stream tokens
+            # Load model if needed (with status updates)
+            if needs_loading:
+                yield {
+                    "event": "message",
+                    "data": json.dumps({
+                        "type": StreamEventType.LOADING.value,
+                        "content": f"Loading {model_name}...",
+                        "model": model_id,
+                    })
+                }
+                # Run model loading in thread pool to allow event to be sent
+                await asyncio.to_thread(service.load_model, model_id)
+
+            # Send thinking event - model is loaded, now processing
+            yield {
+                "event": "message",
+                "data": json.dumps({
+                    "type": StreamEventType.THINKING.value,
+                    "content": "Thinking...",
+                })
+            }
+
+            # Stream tokens (model is already loaded)
             async for token in service.generate_stream(
                 messages=messages,
                 model_id=model_id,

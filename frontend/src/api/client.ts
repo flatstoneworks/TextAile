@@ -65,10 +65,11 @@ export interface ChatResponse {
 }
 
 export interface StreamEvent {
-  type: 'start' | 'token' | 'done' | 'error'
+  type: 'start' | 'token' | 'done' | 'error' | 'loading' | 'thinking'
   content?: string
   message_id?: string
   error?: string
+  model?: string
 }
 
 export interface ModelInfo {

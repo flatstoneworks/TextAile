@@ -32,8 +32,8 @@ echo "Installing Python dependencies..."
 pip install -r requirements.txt -q
 
 # Start backend in background
-echo -e "${GREEN}Starting backend on port 8001...${NC}"
-uvicorn app.main:app --host 0.0.0.0 --port 8001 &
+echo -e "${GREEN}Starting backend on port 8041...${NC}"
+uvicorn app.main:app --host 0.0.0.0 --port 8041 &
 BACKEND_PID=$!
 
 cd "$SCRIPT_DIR"
@@ -49,7 +49,7 @@ if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules" ]; then
 fi
 
 # Start frontend
-echo -e "${GREEN}Starting frontend on port 5174...${NC}"
+echo -e "${GREEN}Starting frontend on port 8040...${NC}"
 npm run dev &
 FRONTEND_PID=$!
 
@@ -58,9 +58,9 @@ cd "$SCRIPT_DIR"
 echo ""
 echo -e "${GREEN}TextAile is starting!${NC}"
 echo ""
-echo "  Frontend: http://spark.local:5174"
-echo "  Backend:  http://spark.local:8001"
-echo "  API Docs: http://spark.local:8001/docs"
+echo "  Frontend: http://spark.local:8040"
+echo "  Backend:  http://spark.local:8041"
+echo "  API Docs: http://spark.local:8041/docs"
 echo ""
 echo "Press Ctrl+C to stop all services"
 
